@@ -52,14 +52,18 @@ class App:
         Button(self.frame, width=6, text='Sign Up', border=0, bg='white', cursor='hand2', fg='#57a1f8', command=self.open_register_form).place(x=215, y=270)
 
     def on_enter(self, event, entry, placeholder):
-        if entry.get() in [placeholder]:
+        if entry.get() == placeholder:
             entry.delete(0, 'end')
-        entry.config(show='*' if entry == self.code else '')
+            if placeholder == 'Password':
+                entry.config(show='*')
 
     def on_leave(self, event, entry, placeholder):
         if entry.get() == '':
             entry.insert(0, placeholder)
-        entry.config(show='*' if entry == self.code else '')
+            if placeholder == 'Password':
+                entry.config(show='')
+        elif placeholder == 'Password':
+            entry.config(show='*')
 
     def signin(self):
         username = self.user.get()
@@ -94,9 +98,9 @@ class App:
         self.reg_user = Entry(self.register_frame, width=25, fg='black', border=0, bg='white', font=('Microsoft Yahei UI light', 11))
         self.reg_user.place(x=30, y=80)
         self.reg_user.insert(0, 'Username')
-        Frame(self.register_frame, width=295, height=2, bg='black').place(x=25, y=107)
         self.reg_user.bind('<FocusIn>', lambda e: self.on_enter(e, self.reg_user, 'Username'))
         self.reg_user.bind('<FocusOut>', lambda e: self.on_leave(e, self.reg_user, 'Username'))
+        Frame(self.register_frame, width=295, height=2, bg='black').place(x=25, y=107)
 
         # Password entry for registration
         self.reg_code = Entry(self.register_frame, width=25, fg='black', border=0, bg='white', font=('Microsoft Yahei UI light', 11))
@@ -105,6 +109,15 @@ class App:
         self.reg_code.bind('<FocusIn>', lambda e: self.on_enter(e, self.reg_code, 'Password'))
         self.reg_code.bind('<FocusOut>', lambda e: self.on_leave(e, self.reg_code, 'Password'))
         Frame(self.register_frame, width=295, height=2, bg='black').place(x=25, y=177)
+
+        # confirm password
+        self.confirm_code = Entry(self.register_frame,width=25, fg='black', border=0, bg='white', font=('Microsoft Yahei UI light', 11) )
+        self.confirm_code.place(x=30, y=220)
+        self.confirm_code.insert(0, "Confirm Password")
+        self.confirm_code.bind('<FocusIn>', lambda e: self.on_enter(e, self.confirm_code, 'Confirm Password'))
+        self.confirm_code.bind('<FocusOut>', lambda e: self.on_leave(e, self.confirm_code, 'Confirm Password'))
+        Frame(self.register_frame, width=295, height=2, bg='black').place(x=25, y=247)
+        
 
         # Register button
         Button(self.register_frame, width=39, pady=7, text='Register', bg='#57a1f8', fg='white', border=0, cursor='hand2').place(x=35, y=300)
