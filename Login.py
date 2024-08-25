@@ -1,5 +1,7 @@
 from tkinter import *
 from tkinter import messagebox
+import psycopg2
+import bcrypt
 
 class App:
     def __init__(self, root):
@@ -69,19 +71,25 @@ class App:
         username = self.user.get()
         password = self.code.get()
 
-        if username == 'admin' and password == '1234':
-            screen = Toplevel(self.root)
-            screen.title("App")
-            screen.geometry('925x500+300+200')
-            screen.config(bg='white')
-            Label(screen, text=f'Welcome {username} !', bg='#fff', font=('Calibri(Body)', 50, 'bold')).pack(expand=True)
-            screen.mainloop()
-        elif username != 'admin' and password != '1234':
-            messagebox.showerror("Invalid", "Invalid username and password")
-        elif password != '1234':
-            messagebox.showerror("Invalid", "Invalid password")
-        elif username != 'admin':
-            messagebox.showerror("Invalid", "Invalid username")
+        conn = self.connect_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT Password FROM user WHERE Username = %s", (username,))
+            result = cursor.fetchone()
+            if result and bcrypt.checkpw(password.encode('utf-8'), result[0]):
+                screen = Toplevel(self.root)
+                screen.title("App")
+                screen.geometry('925x500+300+200')
+                screen.config(bg='white')
+                Label(screen, text=f'Welcome {username} !', bg='#fff', font=('Calibri(Body)', 50, 'bold')).pack(expand=True)
+                screen.mainloop()
+            else:
+                messagebox.showerror("Invalid", "Invalid username or password")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error: {e}")
+        finally:
+            cursor.close()
+            conn.close()
 
     def open_register_form(self):
         self.frame.destroy()  # Remove the login frame
@@ -110,17 +118,52 @@ class App:
         self.reg_code.bind('<FocusOut>', lambda e: self.on_leave(e, self.reg_code, 'Password'))
         Frame(self.register_frame, width=295, height=2, bg='black').place(x=25, y=177)
 
-        # confirm password
-        self.confirm_code = Entry(self.register_frame,width=25, fg='black', border=0, bg='white', font=('Microsoft Yahei UI light', 11) )
+        # Confirm password
+        self.confirm_code = Entry(self.register_frame, width=25, fg='black', border=0, bg='white', font=('Microsoft Yahei UI light', 11))
         self.confirm_code.place(x=30, y=220)
         self.confirm_code.insert(0, "Confirm Password")
         self.confirm_code.bind('<FocusIn>', lambda e: self.on_enter(e, self.confirm_code, 'Confirm Password'))
         self.confirm_code.bind('<FocusOut>', lambda e: self.on_leave(e, self.confirm_code, 'Confirm Password'))
         Frame(self.register_frame, width=295, height=2, bg='black').place(x=25, y=247)
-        
 
         # Register button
-        Button(self.register_frame, width=39, pady=7, text='Register', bg='#57a1f8', fg='white', border=0, cursor='hand2').place(x=35, y=300)
+        Button(self.register_frame, width=39, pady=7, text='Register', bg='#57a1f8', fg='white', border=0, cursor='hand2', command=self.register_user).place(x=35, y=300)
+
+    def connect_db(self):
+        return psycopg2.connect(
+            dbname="users",
+            user="postgres",
+            password="your_password",  # Correct this to your actual database password
+            host="localhost",
+            port="5432",
+        )
+    
+    def register_user(self):
+        username = self.reg_user.get()
+        password = self.reg_code.get()
+        confirm_password = self.confirm_code.get()
+
+        if password == confirm_password:
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+            conn = self.connect_db()
+            cursor = conn.cursor()
+            try:
+                cursor.execute("INSERT INTO user (Username, Password) VALUES (%s, %s)", (username, hashed_password))
+                conn.commit()
+                messagebox.showinfo("Success", "User Registered")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+        else:
+            messagebox.showerror("Error", "Passwords do not match")
+
+        # Clear the registration fields
+        self.reg_user.delete(0, 'end')
+        self.reg_code.delete(0, 'end')
+        self.confirm_code.delete(0, 'end')
 
 if __name__ == "__main__":
     root = Tk()
